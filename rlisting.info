@@ -1,0 +1,16 @@
+name = Real Estate 7
+description = Realestate Listing
+package = rListing
+core = 7.x
+version = 1.x-dev
+stylesheets[all][] = rlisting7.css
+dependencies[] = location
+dependencies[] = location_cck
+dependencies[] = gmap
+dependencies[] = file
+dependencies[] = menu
+dependencies[] = list
+dependencies[] = number
+dependencies[] = image
+dependencies[] = taxonomy
+dependencies[] = field_slideshow

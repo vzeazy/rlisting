@@ -1,0 +1,652 @@
+<?php
+
+/**
+ * @file
+ *  main rlising module file.
+ */
+define('RLISTING_RESULT_PAGE', 'rlisting/result');
+
+include_once dirname(__FILE__) . '/rlisting.api.inc';
+include_once dirname(__FILE__) . '/rlisting.form.inc';
+
+/**
+ * Implementation of hook_ini
+ */
+function rlisting_init() {
+  drupal_add_css( drupal_get_path('module','rlisting') . '/css/rlisting.css');
+  drupal_add_js( drupal_get_path('module','rlisting') . '/js/rlisting.js');
+
+  $settings['rlisting']['loadingimage'] = URL(drupal_get_path('module','rlisting') . '/images/loadingAnimation.gif', array('absolute' => true));
+  $settings['rlisting']['ajaxMarker'] = URL('rlisting/ajax/markers', array('absolute' => true));
+  drupal_add_js($settings, 'setting');
+  //$f = field_info_instances('node','rlisting');
+//drupal_set_message(print_r($f,1));
+}
+
+/**
+ * implementation hook_menu();
+ */
+function rlisting_menu() {
+  $items = array();
+
+  $items['admin/config/rlisting'] = array(
+    'title' => 'rListing',
+    'description' => 'Administer rListing',
+    'file' => 'rlisting.admin.inc',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('rlisting_admin_settings'),
+    'access arguments' => array('administer users'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['rlisting/result'] = array(
+    'title' => 'Property Results',
+    'page callback' => 'rlisting_result',
+    'page arguments' => array(2),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    'file' => 'rlisting.pages.inc',
+  );
+
+  $items['rlisting/map'] = array(
+    'title' => 'Listing Map',
+    'page callback' => 'rlisting_map',
+    'access arguments' => array('access content'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'rlisting.pages.inc',
+  );
+
+  // use by  map listing page
+  $items['rlisting/ajax/markers'] = array(
+    'page callback' => 'rlisting_ajax_markers',
+    'access arguments'  => array('access content'),
+    'type'              => MENU_CALLBACK,
+    'file'              => 'rlisting.ajax.inc'
+  );
+
+  return $items;
+};
+/**
+ * hook_permission()
+ */
+function rlisting_permission() { 
+  return array(
+    'administer rlisting' => array(
+      'title' => t('Administer rListing'),
+      'description' => t('Add/Update/Delete rlistings'),
+    ),
+  );
+}
+
+/**
+ * hook_theme()
+ */
+function rlisting_theme() {
+  return array(
+    'rlisting_node_form' => array(
+      'render element' => 'form',
+      'template' => 'tpl/rlisting-node-form',
+      'file' => 'rlisting.theme.inc',
+    ),
+    'rlisting_fullview' => array(
+      'variables' => array('node' => NULL),
+      'file' => 'rlisting.theme.inc',
+      'template' => 'tpl/rlisting-fullview',
+    ),
+    'rlisting_teaserview' => array(
+      'variables' => array('node' => NULL),
+      'file' => 'rlisting.theme.inc',
+      'template' => 'tpl/rlisting-teaserview',
+    ),
+    'rlisting_search_result' => array(
+      'variables' => array('node' => NULL),
+      'file' => 'rlisting.theme.inc',
+      'template' => 'tpl/rlisting-search-result',
+    ),
+    'rlisting_marker_content' => array(
+      'variables' => array('node' => NULL),
+      'file' => 'rlisting.theme.inc',
+      'template' => 'tpl/rlisting-marker-content',
+    ),
+    'rlisting_sidebar_listing' => array(
+      'variables' => array('node' => NULL),
+      'file' => 'rlisting.theme.inc',
+      'template' => 'tpl/rlisting-sidebar-listing',
+    ),
+    'rlisting_listing_title' => array(
+      'variables' => array('node' => NULL, 'link' => TRUE),
+      'file' => 'rlisting.theme.inc',
+    ),
+    'rlisting_format_price' => array(
+      'variables' => array('price' => NULL),
+      'file' => 'rlisting.theme.inc',
+    ),
+    'rlisting_agent_block' => array(
+      'variables' => array('user' => NULL),
+      'file' => 'rlisting.theme.inc',
+      'template' => 'tpl/rlisting-agent-block',
+    ),
+  );
+};
+
+/**
+ * hook_username_alter
+ */
+function rlisting_username_alter(&$name, $account) {
+
+  if (!empty($account->field_agent_name)) {
+      $name = $account->field_agent_name['und'][0]['value'];
+  };
+
+};
+
+/**
+ * hook_library();
+ */
+function rlisting_library() {
+  $libraries['jquery-tooltips'] = array(
+    'title' => t('Jquery Tool Tips'),
+    'website' => 'http://flowplayer.org/tools/tooltip/index.html',
+    'version' => '1.2.6',
+    'js' => array(
+        drupal_get_path('module', 'rlisting') . '/js/jquery.tooltips.min.js' => array(),
+    ),
+    'css' => array(
+        drupal_get_path('module', 'rlisting') . '/js/jquery.tooltips.css' => array(
+          'type' => 'file',
+          'media' => 'screen',
+        ),
+    ),
+    'dependencies' => array(
+      array('system', 'jquery'),
+    ),
+  ); 
+
+};
+
+/**
+ * hook_block_info();
+ */
+function rlisting_block_info() {
+  $blocks = array();
+
+  $blocks['rlisting_listing_browse']['info'] = t('Browse Listing');
+  $blocks['rlisting_agent']['info'] = t('Listing Agent');
+  $blocks['rlisting_similar_listing']['info'] = t('Similar Listing');
+  $blocks['rlisting_listing_showcase']['info'] = t('Listing Showcase');
+  
+  // Admin side block when viewing a listing.
+  $blocks['rlisting_listing_admin']['info'] = t('Listing Admin');
+
+  return $blocks;
+
+};
+
+/**
+ * hook_block_view
+ */
+function rlisting_block_view($delta = '') {
+  $block = array();
+  
+  if ($delta == "rlisting_similar_listing" || 
+      $delta == "rlisting_listing_admin" || 
+      $delta == "rlisting_agent" ) {
+
+      $sys_path = drupal_get_normal_path($_GET['q']);
+      $type = arg(0, $sys_path);
+      $nid = arg(1, $sys_path);
+      if ($type == 'node' && is_numeric($nid)) {
+        $node = node_load($nid);
+      }
+      else {
+        $node = NULL;
+      };
+  } 
+  else {
+      $nid = $type = NULL;
+  }
+
+  switch ($delta) {
+    case 'rlisting_listing_admin':
+      if (user_access('administer rlisting')) {
+        if (!empty($node) && $node->type == 'rlisting') {
+          $block['subject'] = t('Listing Admin');
+          $block['content'] = _rlisting_listing_admin($node);
+        };
+      };
+      break;
+    case 'rlisting_listing_showcase':
+      $block['subject'] = t('Listing Showcase');
+      $block['content'] = _rlisting_listing_showcase();
+      break;
+    case 'rlisting_similar_listing':
+      if (!empty($node)) {
+        $block['subject'] = t('Similar Listing');
+        $block['content'] = _rlisting_similar_listing($node);
+      };
+      break;
+    case 'rlisting_listing_browse':
+      $block['subject'] = t('Browse Listing');
+      $block['content'] = drupal_get_form('rlisting_browse_form');
+      break;
+    case 'rlisting_agent':
+      if (!empty($node)) {
+      $block['subject'] = t('Agent');
+      $block['content'] = _rlisting_agent_listing(user_load($node->uid));
+      };
+      break;
+  };
+
+  return $block;
+};
+
+/**
+ * Admin block for a particular listing. 
+ * 
+ * @param $node
+ *  - The listing node object.
+ */
+function _rlisting_listing_admin($node) {
+
+  // Include the CTools tools that we need.
+  ctools_include('ajax');
+  ctools_include('modal');
+  drupal_add_library('system', 'drupal.ajax');
+
+  // Add CTools' javascript to the page
+  ctools_modal_add_js();
+
+  // Our own javascript that will be used to them a a modal
+  $rlisting_style = array(
+    'rlisting-style' => array(
+      'modalSize' => array(
+        'type' => 'fixed',
+        'width' => 600,
+        'height' => 400,
+        'addWidth' => 20,
+        'addHeight' => 15,
+      ),
+      'modalOptions' => array(
+        'opacity' => .5,
+        'background-color' => '#000',
+      ),
+      'animation' => 'fadeIn',
+      'modalTheme' => 'rListingModal',
+      'throbber' => theme('image', array('path' => ctools_image_path('ajax-loader.gif', 'rlisting'), 'alt' => t('Loadding...'), 'title' => t('Loading'))),
+    ),
+  );
+  
+  drupal_add_js($rlisting_style, 'setting');
+  // add the js and css
+  ctools_add_js('rlisting-modal', 'rlisting');
+  ctools_add_css('rlisting-modal-box', 'rlisting');
+
+  
+  //$links[] = ctools_modal_text_button(t('Add Openhouse'), 'openhouse/nojs/add/' . $node->nid, t('Add new openhouse'), 'ctools-modal-rlisting-style');
+
+/*
+  $links[] = array(
+    'title' => t('List all Openhouse'), 
+    'href' => 'node/' . $node->nid . '/openhouse',
+  );
+*/
+  // we need to format the link properly so that theme_links will work.
+  $links[] = array(
+    'title' => t('Show current openhouse'), 
+    'href' => 'openhouse/nojs/list/' . $node->nid ,
+    'attributes' => array(
+      'class' => array('ctools-modal-rlisting-style', 'ctools-use-modal'),
+    ),
+  );
+  // we need to format the link properly so that theme_links will work.
+  $links[] = array(
+    'title' => t('Add Openhouse'), 
+    'href' => 'openhouse/nojs/add/' . $node->nid ,
+    'attributes' => array(
+      'class' => array('ctools-modal-rlisting-style', 'ctools-use-modal'),
+    ),
+  );
+
+  $output = theme('ctools_dropdown', array('title' => t('Manage Openhouse'), 'links' => $links));
+
+  //$output = theme('item_list', array('items' => $links));
+  
+
+  return $output;
+
+};
+
+
+/**
+ * hook_view();
+ */
+function rlisting_node_view($node, $view_mode) {
+
+  if ($node->type == 'rlisting') {
+
+
+    if ($view_mode == 'full') {
+      $node->content['rlisting'] = array(
+        '#markup' => theme('rlisting_fullview', array('node' => $node)),
+        '#weight' => -10,
+      );
+    }
+    elseif ($view_mode == 'teaser') {
+      $node->content['rlisting'] = array(
+        '#markup' => theme('rlisting_teaserview', array('node' => $node)),
+        '#weight' => -10,
+      );
+    }
+    elseif ($view_mode == 'print') {
+      // set the pager to image so that map works.
+      $node->content['rlisting_photos'][0]['#pager'] = 'image';
+      if (module_exists('gmap')) {
+        _gmap_doheader();
+      };
+      
+    };
+
+  };
+
+};
+
+/**
+ * Search block form
+ */
+function rlisting_browse_form($form, &$form_state) {
+
+  if (!empty($_SESSION['rlisting_browse'])) {
+    $post = $_SESSION['rlisting_browse'];
+  }
+  else {
+    $post = NULL;
+  };
+
+  $allowed_values = list_allowed_values(field_info_field('rlisting_listing_type'));
+  $allowed_values[0] = t('All');
+  ksort($allowed_values);
+  $form['listing_type'] = array(
+    '#type' => 'select',
+    '#title' => t('Listing Type'),
+    '#options' => $allowed_values,
+    '#default_value' => (!empty($post->listing_type)) ? $post->listing_type : 0,
+    '#weight' => -10,
+  );
+  $allowed_values = list_allowed_values(field_info_field('rlisting_building_type')); 
+  $allowed_values[0] = t('All');
+  ksort($allowed_values);
+  $form['building_type'] = array(
+    '#type' => 'select',
+    '#title' => t('Property Type'),
+    '#options' => $allowed_values,
+    '#default_value' => (!empty($post->building_type)) ? $post->building_type : 0,
+    '#weight' => -9,
+  );
+
+  for ($i = 1; $i <= 15; $i++){ $beds[$i] = $i; };
+  $form['bedrooms'] = array(
+    '#type' => 'select',
+    '#title' => t('Min. Bed'),
+    '#options' => $beds,
+    '#default_value' => (!empty($post->bedrooms))? $post->bedrooms : '',
+    '#weight' => -8,
+  );
+  for ($i = 1; $i <= 10; $i++){ $baths[$i] = $i; };
+  $form['bathrooms'] = array(
+    '#type' => 'select',
+    '#title' => t('Min. Bath'),
+    '#options' => $beds,
+    '#default_value' => (!empty($post->bathrooms))? $post->bathrooms : '',
+    '#weight' => -8,
+  );
+
+  $min_price = variable_get('rlisting_config_min_price', '50,000');
+  $max_price = variable_get('rlisting_config_max_price', '1,000,000');
+  $increment_price = variable_get('realestate_config_increment_price', '50,000');
+
+  $chars = array(',');
+  $min_price = str_replace($chars,'',$min_price);
+  $max_price = str_replace($chars,'',$max_price);
+  $increment = str_replace($chars,'',$increment_price);
+  $price_options = array();
+  for ($i = $min_price; $i <= $max_price; $i += $increment) {
+    if ($i > 1000000) {
+        $i += $increment;
+    }
+    $price_options[$i] = number_format($i,0);
+  };
+  $form['min_price'] = array(
+    '#type' => 'select',
+    '#title' => t('Min. Price'),
+    '#options' => $price_options,
+    '#default_value' => (!empty($post->min_price))? $post->min_price : $min_price,
+    '#weight' => -7,
+  );
+  $form['max_price'] = array(
+    '#type' => 'select',
+    '#title' => t('Max. Price'),
+    '#options' => $price_options,
+    '#default_value' => $max_price,
+    '#default_value' => (!empty($post->max_price))? $post->max_price : $max_price,
+    '#weight' => -6,
+  );
+
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Submit'),
+  );
+
+
+  return $form;
+
+};
+
+/**
+ * Search submit function
+ */
+function rlisting_browse_form_submit($form, &$form_state) {
+  $fields = array(
+    'listing_type', 'building_type', 'bedrooms', 'bathrooms',
+    'min_price', 'max_price'
+  );
+
+  foreach($fields as $field){
+    $_SESSION['rlisting_browse']->$field = $form_state['values'][$field];
+  };
+  $form_state['redirect'] = RLISTING_RESULT_PAGE;
+
+}
+
+/**
+ * map filter
+ */
+function rlisting_map_form($form, &$form_state) {
+
+  if (!empty($_SESSION['rlisting_browse'])) {
+    $post = $_SESSION['rlisting_browse'];
+  }
+  else {
+    $post = NULL;
+  };
+
+  $allowed_values = list_allowed_values(field_info_field('rlisting_listing_type'));
+  $allowed_values[0] = t('All');
+  ksort($allowed_values);
+  $form['listing_type'] = array(
+    '#type' => 'select',
+    '#title' => t('Listing Type'),
+    '#options' => $allowed_values,
+    '#default_value' => '',
+    '#weight' => -10,
+  );
+  $allowed_values = list_allowed_values(field_info_field('rlisting_building_type'));
+  $allowed_values[0] = t('All');
+  ksort($allowed_values);
+  $form['building_type'] = array(
+    '#type' => 'select',
+    '#title' => t('Property Type'),
+    '#options' => $allowed_values,
+    '#default_value' => '',
+    '#weight' => -9,
+  );
+  for ($i = 1; $i <= 15; $i++){ $beds[$i] = $i; };
+  $form['bedrooms'] = array(
+    '#type' => 'select',
+    '#title' => t('Min. Bed'),
+    '#options' => $beds,
+    '#default_value' => (!empty($post->bedrooms))? $post->bedrooms : '',
+    '#weight' => -8,
+  );
+  for ($i = 1; $i <= 10; $i++){ $baths[$i] = $i; };
+  $form['bathrooms'] = array(
+    '#type' => 'select',
+    '#title' => t('Min. Bath'),
+    '#options' => $beds,
+    '#default_value' => (!empty($post->bathrooms))? $post->bathrooms : '',
+    '#weight' => -8,
+  );
+  $min_price = variable_get('rlisting_config_min_price', '50,000');
+  $max_price = variable_get('rlisting_config_max_price', '1,000,000');
+  $increment_price = variable_get('realestate_config_increment_price', '50,000');
+
+  $chars = array(',');
+  $min_price = str_replace($chars,'',$min_price);
+  $max_price = str_replace($chars,'',$max_price);
+  $increment = str_replace($chars,'',$increment_price);
+  $price_options = array();
+  for ($i = $min_price; $i <= $max_price; $i += $increment) {
+    if ($i > 1000000) {
+        $i += $increment;
+    }
+    $price_options[$i] = number_format($i,0);
+  };
+  $form['map_min_price'] = array(
+    '#type' => 'select',
+    '#title' => t('Min. Price'),
+    '#options' => $price_options,
+    '#default_value' => (!empty($post->min_price))? $post->min_price : $min_price,
+    '#weight' => -7,
+  );
+  $form['map_max_price'] = array(
+    '#type' => 'select',
+    '#title' => t('Max. Price'),
+    '#options' => $price_options,
+    '#default_value' => $max_price,
+    '#default_value' => (!empty($post->max_price))? $post->max_price : $max_price,
+    '#weight' => -6,
+  );
+
+  $form['map_submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Submit'),
+  );
+
+  return $form;
+};
+/**
+ * Search submit function
+ */
+function rlisting_map_form_submit($form, &$form_state) {
+  $fields = array(
+    'listing_type', 'building_type', 'bedrooms', 'bathrooms',
+    'map_min_price', 'map_max_price'
+  );
+
+  foreach($fields as $field){
+    $_SESSION['rlisting_browse']->$field = $form_state['values'][$field];
+  };
+
+}
+
+/**
+ * show similar  listings in a block.
+ */
+function _rlisting_similar_listing($node) {
+
+ 
+  $query = rlisting_api_sidebar_query(4, $node);   
+  $result = $query->execute();
+  $output = '';
+  foreach($result as $record) { 
+    $output .= theme('rlisting_sidebar_listing', array('node' => $record)); 
+  };
+
+  return $output;
+}
+/**
+ *  If listing is shown, show the listing agent info block.
+ */
+function _rlisting_agent_listing($account) {
+
+
+  $output = theme('rlisting_agent_block', array('user' => $account));
+
+  return $output;
+}
+/**
+ *
+ */
+function  _rlisting_listing_showcase() {
+
+  drupal_add_css(drupal_get_path('module', 'rlisting') . '/css/showcase.css');
+  $path = drupal_get_path('module', 'rlisting') . '/camera';
+
+  drupal_add_css( $path . '/css/camera.css');
+  drupal_add_js( $path . '/scripts/jquery.mobile.customized.min.js');
+  drupal_add_js( $path . '/scripts/jquery.easing.1.3.js');
+  drupal_add_js( $path . '/scripts/camera.min.js');
+
+/**
+ * Old diapo script change to camera script (same developer)
+  drupal_add_js(drupal_get_path('module', 'rlisting') . '/js/jquery.mobile-1.0rc2.customized.min.js');
+  drupal_add_js(drupal_get_path('module', 'rlisting') . '/js/jquery.easing.1.3.js');
+  drupal_add_js(drupal_get_path('module', 'rlisting') . '/js/jquery.hoverIntent.minified.js');
+  drupal_add_js(drupal_get_path('module', 'rlisting') . '/js/diapo.js');
+*/
+  drupal_add_js(drupal_get_path('module', 'rlisting') . '/js/showcase.js');
+
+  $showcase_term_id = variable_get('rlisting_showcase_term',3);
+
+  $nids = taxonomy_select_nodes($showcase_term_id);
+  $nodes = node_load_multiple($nids);
+  $slides = '';
+  foreach($nodes as $node) {
+    $image_path = $node->rlisting_photos['und'][0]['uri'];
+    if (!empty($image_path)) {
+      $showcase = array(
+        'style_name' => 'rlisting-showcase',
+        'path' => $node->rlisting_photos['und'][0]['uri'],
+        'width' => '',
+        'height' => '',
+      );
+      $thumbnail_url = image_style_url('rlisting-mini', $image_path);
+      //$image = theme_image_style($showcase);
+      $image_path = image_style_url('rlisting-showcase', $image_path);
+
+      $price = theme('rlisting_format_price', array('price' => $node->rlisting_price['und'][0]['value']));
+      $bed_bath = format_plural($node->rlisting_bedroom['und'][0]['value'], '1 bedroom', '@count bedrooms') . ', ' . 
+                  format_plural($node->rlisting_bathroom['und'][0]['value'], '1 bathroom', '@count bathrooms');
+
+
+      $slides .= '
+          <div data-src="' . $image_path . '" data-thumb="' . $thumbnail_url . '">
+            <div class="camera_caption elemHover fromLeft">
+            ' . $price . ' - ' . theme('rlisting_listing_title', array('node' => $node)). '
+<br /> 
+            ' . $bed_bath . '
+            </div>
+          </div>
+      ';
+    };
+
+  };
+
+  $output = '
+<div id="pix_diapo">
+    ' . $slides . '
+</div>
+  ';
+
+  return $output;
+}

@@ -1,0 +1,404 @@
+<?php
+/**
+ * @file
+ * main module file for openhouse.
+ */
+
+include_once dirname(__FILE__) . '/openhouse.api.inc';
+
+/**
+ * Implementation of hook_help();
+ */
+function openhouse_help($path, $arg) {
+  $output = '';
+
+  switch ($path) {
+    case 'node/%/openhouse':
+      $output = t('Note: The location of the openhouse is linked to the current Listing.');
+      break;
+  };
+
+  return $output;
+
+};
+
+/**
+ * implementation hook_menu();
+ */
+function openhouse_menu() {
+
+  $items = array();
+  
+  $items['node/%node/openhouse'] = array(
+    'title' => 'Manage Open House',
+    'page callback' => 'openhouse_add',
+    'page arguments' => array(1),
+    'access callback' => 'openhouse_menu_access',
+    'access arguments' => array('administer openhouse', 1),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'openhouse.pages.inc',
+    'weight' => 1,
+  );
+  $items['node/%node/rlisting'] = array(
+    'title' => 'View Listing',
+    'page callback' => 'openhouse_rlisting',
+    'page arguments' => array(1),
+    'access callback' => 'openhouse_menu_access',
+    'access arguments' => array('view rlisting', 1),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'openhouse.pages.inc',
+    'weight' => 1,
+  );
+
+  // ajax popup form list.
+  $items['openhouse/%ctools_js/list'] = array(
+    'title' => t('New Openhouse'),
+    'page callback' => 'openhouse_ajax_list',
+    'page arguments' => array(1, 3),
+    'access arguments' => array('administer openhouse'),
+    'type' => MENU_CALLBACK,
+    'file' => 'openhouse.ajax.inc',
+  );
+
+  // ajax popup form
+  $items['openhouse/%ctools_js/add'] = array(
+    'title' => t('New Openhouse'),
+    'page callback' => 'openhouse_ajax_add_new',
+    'page arguments' => array(1, 3),
+    'access arguments' => array('administer openhouse'),
+    'type' => MENU_CALLBACK,
+    'file' => 'openhouse.ajax.inc',
+  );
+
+  return $items;
+};
+
+/** 
+ * openhouse menu access
+ */
+function openhouse_menu_access($op, $node) {
+  global $user;
+
+  switch ($op) {
+    case 'administer openhouse': 
+      if ($node->type == 'rlisting') {
+        return user_access($op);
+      };
+      break;
+    case 'view openhouse': 
+      if ($node->type == 'rlisting') {
+        return TRUE;
+      };
+      break;
+    case 'view rlisting': 
+      if ($node->type == 'openhouse') {
+        return TRUE;
+      };
+      break;
+    default: 
+      return FALSE;
+  };
+};
+/**
+ * hook_permission()
+ */
+function openhouse_permission() {
+
+  return array(
+    'adminster openhouse' => array(
+      'title' => t('Administer Open House'),
+      'description' => t('Add/Update/Deleete open house listings'),
+    ),
+  );
+};
+
+/**
+ * Implementation hook_theme()
+ */
+function openhouse_theme() {
+
+  return array(
+    'openhouse_listings' => array(
+      'variables' => array('node' => NULL),
+    ),
+  );
+
+};
+
+/**
+ * hook_block_info();
+ */
+function openhouse_block_info() {
+  $blocks = array();
+
+  $blocks['openhouse_entries']['info'] = t('Openhouse');
+
+  return $blocks;
+};
+
+/**
+ * hook_block_view();
+ */
+function openhouse_block_view($delta = '') {
+  $block = array();
+
+  switch($delta) {
+    case 'openhouse_entries': 
+      $sys_path = drupal_get_normal_path($_GET['q']);
+      $type = arg(0, $sys_path);
+      $nid = arg(1, $sys_path);
+      if ($type == 'node' && is_numeric($nid)) {
+        $node = node_load($nid);
+        $block['subject'] = t('Open House');
+        $block['content'] = _openhouse_entry_block($node);
+      };
+      break;
+  };
+
+  return $block; 
+};
+
+/** 
+ * list open house for current listing being viewed.
+ */
+function _openhouse_entry_block($node) {
+
+  // Lets display a message if an openhouse is within a week. 
+  // 60 * 24 * 7
+  $now = time();
+  $week = 60* 60 * 24 * 7;
+  $week_from_now = $now + $week;
+
+  $openhouses = $node->openhouse;
+  $rows = array();
+  foreach ($openhouses as $openhouse) {
+    $start = $openhouse->open_date['und'][0]['value'];
+    $end = $openhouse->open_date['und'][0]['value2'];
+
+    if (($start > $now) && ($start <= $week_from_now)) {
+      $start_str = date('D, M d - g:ia', $start);
+      $from_now = t('Open house is in') . ' ' . format_interval($start - $now) . ' ' . t('from now') . ' (' . $start_str . ')';
+      drupal_set_message($from_now);
+    };
+
+    // if end is greater than 24 hrs
+    if (($start - $end) < (60 * 60 * 24)) {
+      // in mose cases, the openhouse 
+      $end_date = format_date($end, 'custom', 'g:ia');
+    }
+    else {
+      $end_date = format_date($end, 'custom', 'D, M d - g:ia');
+    }
+    $rows[] = array(
+      array('data' => format_date($start, 'custom', 'D, M d - g:ia')),
+      array('data' => $end_date),
+    );
+  };
+
+  $output = array(
+    'openhouse' => array(
+      '#theme' => 'table',
+      '#header' => array(t('Start'), t('End')), 
+      '#rows' => $rows,
+    ),
+  );
+  
+  return $output;
+
+};
+
+/**
+ * Implementation of hook_form_FORM_ID_alter()
+ */
+function openhouse_form_openhouse_node_form_alter(&$form, &$form_state, $form_id) {
+  // Second argument passed to drupal_get_form is the listing node.
+  if (!empty($form_state['build_info']['args'][1])) {
+    $listing_node = $form_state['build_info']['args'][1];
+  } 
+  else {
+    if (!empty($form_state['node']->listing_id)) {
+      $listing_node = node_load($form_state['node']->listing_id);
+    };
+  };
+  $title = '';
+
+  if (!empty($listing_node)) {
+    $form['listing_id'] = array(
+      '#type' => 'hidden',
+      '#value' => $listing_node->nid,
+    );
+  }
+  else {
+    // no listing attached to this new open house. so list give user
+    // drop down box of all listing nodes.
+    $query = rlisting_search_query();
+    $result = $query->execute();
+    foreach($result as $node) {
+      $options[$node->nid] = theme('rlisting_format_price', array('price' => $node->rlisting_price_value)) . ' - ' . $node->street . ' - ' . $node->city;
+    };
+
+    $form['listing_field'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Listing Info'),
+      '#weight' => -8,
+    );
+    $form['listing_field']['listing_id'] = array(
+      '#type' => 'select',
+      '#title' => t('Select a listing for this Open house'),
+      '#options' => $options,
+      '#required' => TRUE,
+      '#weight' => -8,
+      '#ajax' => array(
+        'callback' => 'openhouse_listing_ajax_callback',
+        'wrapper' => 'title-wrapper',
+      ),
+      '#suffix' => '<div id="openhouse-listing-display"></div>'
+    );
+    $form['title']['#prefix'] = '<div id="title-wrapper">';
+    $form['title']['#suffix'] = '</div>';
+  };
+
+
+};
+
+/**
+ * ajax listing dropdown callback
+ */
+function openhouse_listing_ajax_callback($form, $form_state) {
+
+
+  $listing_node = node_load($form_state['values']['listing_id']);
+  $form['title']['#value'] = theme('rlisting_listing_title', array('node' => $listing_node, 'link' => FALSE));
+  $output = theme('rlisting_search_result', array('node' => $listing_node));
+  $commands[] = ajax_command_replace('#openhouse-listing-display', $output);
+  $commands[] = ajax_command_replace('#title-wrapper', drupal_render($form['title']));
+
+  return array('#type' => 'ajax', '#commands' => $commands);
+
+};
+
+/**
+ * Implements hook_node_insert();
+ */
+function openhouse_node_insert($node) {
+
+  if ($node->type == 'openhouse') {
+    if ($node->listing_id) {
+      db_insert('openhouse_listing')
+        ->fields(array(
+          'nid' => $node->listing_id,
+          'oid' => $node->nid,
+        ))
+        ->execute();
+      };
+  };
+
+};
+
+/**
+ * Implements hook_node_load()
+ */
+function openhouse_node_load($nodes, $types) {
+
+  foreach ($nodes as $node) {
+    if ($node->type == 'rlisting') {
+      $openhouses = openhouse_get_openhouse($node->nid);
+      $nodes[$node->nid]->openhouse = $openhouses;
+    }
+    elseif ($node->type == 'openhouse') {
+      $result = db_select('openhouse_listing', 'o')
+        ->fields('o')
+        ->condition('oid', $node->nid)
+        ->execute()
+        ->fetchAssoc();
+      $nodes[$node->nid]->listing_id = $result['nid'];;
+    };
+  };
+
+};
+
+/**
+ * Implements hook_node_delete()
+ * delete openhouses if listing is deleted.
+ */
+function openhouse_node_delete($node) {
+
+  if ($node->type == 'rlisting') {
+    $openhouses = openhouse_get_openhouse($node->nid);
+    $nids = array_keys($openhouses);
+    // delete all openhouse linked to this deleted node.
+    if (!empty($nids)) {
+      node_delete_multiple($nids);
+      db_delete('openhouse_listing')
+        ->condition('oid', $nids, 'IN')
+        ->execute();
+    };
+  }
+  elseif ($node->type == 'openhouse') {
+    db_delete('openhouse_listing')
+      ->condition('oid', $node->nid)
+      ->execute();
+  };
+
+};
+
+/**
+ * returns an array of openhouses for a node
+ */
+function openhouse_get_openhouse($nid) {
+  $query = db_select('openhouse_listing', 'o');
+  $query->leftJoin('node', 'n', 'o.oid = n.nid');
+  $query->leftJoin('field_data_open_date', 'fstart', 'o.oid = fstart.entity_id');
+  $query->fields('o', array('oid'));
+  $query->condition('o.nid', $nid);
+
+  $result = $query->execute();
+  $records = array(); 
+
+  foreach($result as $record) {
+    $records[$record->oid] = node_load($record->oid);
+  }; 
+
+  return $records;
+};
+
+/**
+ * 
+ */
+function theme_openhouse_listings(&$variables){
+  $openhouses = $variables['node']->openhouse;
+  $output = '';
+  $now = mktime();
+  if (!empty($openhouses)) {
+    foreach($openhouses as $openhouse) {
+      $items = field_get_items('node', $openhouse, 'open_date');
+      $dates = $items[0];
+
+      // only show offers that haven't passed yet.
+      if ($dates['value2'] >= $now) {
+        $start = date('d/m/Y - g:ia', $dates['value']);
+        $end = date('d/m/Y - g:ia', $dates['value2']);
+
+        $title = $openhouse->title;
+        $items = field_get_items('node', $openhouse, 'body');
+        $body = $items[0]['value'];
+
+        $output .= '
+        <div class="openhouse-offers">
+          <div class="title">' . $title . '</div>
+          <table>
+            <tr><th>' . t('Start') . '</th><th>' . t('End') . '</th></tr>
+            <tr><td>' . $start . '</td><td>' . $end . '</td></tr>
+          </table>
+          <div class="body">' . $body . '</div>
+        </div>
+        ';
+      };
+    };
+
+  };
+
+  return $output;
+
+};
+

@@ -1,0 +1,8 @@
+name = Open House
+description = Open house dates for rlisting listing
+package = rListing
+core = 7.x
+version = 1.x-dev
+stylesheets[all][] = openhouse.css
+dependencies[] = rlisting
+dependencies[] = date

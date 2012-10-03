@@ -1,0 +1,277 @@
+# $Id$
+#
+# Spanish translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  rlisting.admin.inc: n/a
+#  rlisting.api.inc: n/a
+#  rlisting.install: n/a
+#  tpl/rlisting-sidebar-listing.tpl.php: n/a
+#  rlisting.pages.inc: n/a
+#  rlisting.theme.inc: n/a
+#  rlisting.module: n/a
+#  rlisting.info: n/a
+#  openhouse/openhouse.info: n/a
+#  openhouse/openhouse.api.inc: n/a
+#  openhouse/openhouse.module: n/a
+#  openhouse/openhouse.pages.inc: n/a
+#  openhouse/openhouse.install: n/a
+#
+#"Plural-Forms: nplurals=0; plural=;\n"
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2012-03-12 23:47-0700\n"
+"PO-Revision-Date: 2012-03-12 23:47-0700\n"
+"Last-Translator: NAME <EMAIL@ADDRESS>\n"
+"Language-Team: Spanish <EMAIL@ADDRESS>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: rlisting.admin.inc:19
+msgid "Showcase Term"
+msgstr ""
+
+#: rlisting.admin.inc:22
+msgid "Select the term to filter the front page slideshow by."
+msgstr ""
+
+#: rlisting.admin.inc:26
+msgid "Min Price"
+msgstr ""
+
+#: rlisting.admin.inc:28;34
+msgid "Used in search forms"
+msgstr ""
+
+#: rlisting.admin.inc:32
+msgid "Max Price"
+msgstr ""
+
+#: rlisting.api.inc:79 rlisting.install:161
+msgid "Listing"
+msgstr ""
+
+#: rlisting.api.inc:80 tpl/rlisting-sidebar-listing.tpl.php:16
+msgid "Bed"
+msgstr ""
+
+#: rlisting.api.inc:81 tpl/rlisting-sidebar-listing.tpl.php:21
+msgid "Bath"
+msgstr ""
+
+#: rlisting.api.inc:82
+msgid "Price"
+msgstr ""
+
+#: rlisting.pages.inc:166
+msgid "No Listing Found"
+msgstr ""
+
+#: rlisting.theme.inc:26
+msgid "Contact Realtor"
+msgstr ""
+
+#: rlisting.theme.inc:42
+msgid "Visit Office Website"
+msgstr ""
+
+#: rlisting.module:136
+msgid "Jquery Tool Tips"
+msgstr ""
+
+#: rlisting.module:161;208
+msgid "Browse Listing"
+msgstr ""
+
+#: rlisting.module:163
+msgid "Listing Agent"
+msgstr ""
+
+#: rlisting.module:165;203
+msgid "Similar Listing"
+msgstr ""
+
+#: rlisting.module:167;198
+msgid "Listing Showcase"
+msgstr ""
+
+#: rlisting.module:213
+msgid "Agent"
+msgstr ""
+
+#: rlisting.module:269;279;377;387
+msgid "All"
+msgstr ""
+
+#: rlisting.module:273;381
+msgid "Listing Type"
+msgstr ""
+
+#: rlisting.module:283;391
+msgid "Property Type"
+msgstr ""
+
+#: rlisting.module:292;399
+msgid "Min. Bed"
+msgstr ""
+
+#: rlisting.module:300;407
+msgid "Min. Bath"
+msgstr ""
+
+#: rlisting.module:323;429
+msgid "Min. Price"
+msgstr ""
+
+#: rlisting.module:330;436
+msgid "Max. Price"
+msgstr ""
+
+#: rlisting.module:340;445
+msgid "Submit"
+msgstr ""
+
+#: rlisting.module:519
+msgid "1 bedroom"
+msgid_plural "@count bedrooms"
+msgstr[0] ""
+msgstr[1] ""
+
+#: rlisting.module:520
+msgid "1 bathroom"
+msgid_plural "@count bathrooms"
+msgstr[0] ""
+msgstr[1] ""
+
+#: rlisting.module:32 rlisting.info:0 openhouse/openhouse.info:0
+msgid "rListing"
+msgstr ""
+
+#: rlisting.module:33
+msgid "Administer rListing"
+msgstr ""
+
+#: rlisting.module:42
+msgid "Property Results"
+msgstr ""
+
+#: rlisting.module:51
+msgid "Listing Map"
+msgstr ""
+
+#: rlisting.install:163
+msgid "Real Estate Listing"
+msgstr ""
+
+#: rlisting.install:215;217
+msgid "Listing Tag"
+msgstr ""
+
+#: rlisting.install:244
+msgid "Featured Left Listing"
+msgstr ""
+
+#: rlisting.install:253
+msgid "Featured Right Listing"
+msgstr ""
+
+#: rlisting.install:262
+msgid "Showcase Listing"
+msgstr ""
+
+#: rlisting.info:0
+msgid "Real Estate 7"
+msgstr ""
+
+#: rlisting.info:0
+msgid "Realestate Listing"
+msgstr ""
+
+#: openhouse/openhouse.api.inc:52 openhouse/openhouse.module:173
+msgid "Start"
+msgstr ""
+
+#: openhouse/openhouse.api.inc:52 openhouse/openhouse.module:173
+msgid "End"
+msgstr ""
+
+#: openhouse/openhouse.api.inc:52
+msgid "Notes"
+msgstr ""
+
+#: openhouse/openhouse.api.inc:54
+msgid "Action"
+msgstr ""
+
+#: openhouse/openhouse.api.inc:62
+msgid "No open house found"
+msgstr ""
+
+#: openhouse/openhouse.pages.inc:40
+msgid "Create @name"
+msgstr ""
+
+#: openhouse/openhouse.pages.inc:48
+msgid "Open House for "
+msgstr ""
+
+#: openhouse/openhouse.module:17
+msgid "Note: The location of the openhouse is linked to the current Listing."
+msgstr ""
+
+#: openhouse/openhouse.module:84
+msgid "Administer Open House"
+msgstr ""
+
+#: openhouse/openhouse.module:85
+msgid "Add/Update/Deleete open house listings"
+msgstr ""
+
+#: openhouse/openhouse.module:106
+msgid "Openhouse"
+msgstr ""
+
+#: openhouse/openhouse.module:124;33 openhouse/openhouse.install:34 openhouse/openhouse.info:0
+msgid "Open House"
+msgstr ""
+
+#: openhouse/openhouse.module:152
+msgid "Open house is in"
+msgstr ""
+
+#: openhouse/openhouse.module:152
+msgid "from now"
+msgstr ""
+
+#: openhouse/openhouse.module:238
+msgid "Listing Info"
+msgstr ""
+
+#: openhouse/openhouse.module:243
+msgid "Select a listing for this Open house"
+msgstr ""
+
+#: openhouse/openhouse.module:43
+msgid "View Listing"
+msgstr ""
+
+#: openhouse/openhouse.install:36
+msgid "Open House listing"
+msgstr ""
+
+#: openhouse/openhouse.install:55
+msgid "The {node}.nid of the rlisting node type."
+msgstr ""
+
+#: openhouse/openhouse.install:62
+msgid "The {node}.nid of the openhouse node type."
+msgstr ""
+
+#: openhouse/openhouse.info:0
+msgid "Open house dates for rlisting listing"
+msgstr ""
+

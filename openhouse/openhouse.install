@@ -1,0 +1,140 @@
+<?php
+/**
+ * @file
+ * Install file for openhouse module
+ */
+
+
+/** 
+ * Implementation of hok_install();
+ */
+function openhouse_install() {
+
+};
+
+/**
+ * Implementation  of hoook_enable()
+ */
+function openhouse_enable() {
+  // create the node and add the fields.
+  _openhouse_create_node_type();
+  _openhouse_attach_fields('openhouse');
+
+
+};
+
+
+/**
+ * create the node type is it already doesn't exist.
+ */
+function _openhouse_create_node_type() {
+
+  $node_type = array(
+    'type' => 'openhouse',
+    'name' => t('Open House'),
+    'base' => 'node_content',
+    'description' => t('Open House listing'),  
+    'custom' => 1,
+    'modified' => 1,
+    'locked' => 0,
+  );
+
+  $node_type = node_type_set_defaults($node_type);
+  node_add_body_field($node_type);
+  node_type_save($node_type);
+};
+
+/**
+ * 
+ */
+function openhouse_schema() {
+
+  $schema['openhouse_listing'] = array(
+    'fields' => array(
+      'nid'   => array(
+        'description'   => t('The {node}.nid of the rlisting node type.'),
+        'type'          => 'int',
+        'unsigned'      => TRUE,
+        'not null'      => TRUE,
+        'default'       => 0,
+      ),
+      'oid'   => array(
+        'description'   => t('The {node}.nid of the openhouse node type.'),
+        'type'          => 'int',
+        'unsigned'      => TRUE,
+        'not null'      => TRUE,
+        'default'       => 0,
+      ),
+    ),
+    'primary key' => array('nid', 'oid'),
+  );
+
+  return $schema;
+};
+
+/**
+ * helper function to create the default fields.
+ */
+function _openhouse_attach_fields($node_type) {
+
+  $fields = array(
+      array(
+        'name' => 'open_date',
+        'label' => 'Date',
+        'type' => 'datestamp',
+        'required' => FALSE,
+        'settings' => NULL
+      ),
+  );
+
+  foreach ($fields as $field_info) {
+    $field = field_info_field($field_info['name']);
+    $instance = field_info_instance('node', $field_info['name'], $node_type);
+
+    if (empty($field)) {
+      // create field
+      $field = array(
+        'field_name' => $field_info['name'],
+        'type' => $field_info['type'],
+      );
+      if ($field_info['settings']) {
+        $field['settings'] = $field_info['settings'];
+      };
+      if (!empty($field_info['cardinality'])) {
+        $field['cardinality'] = $field_info['cardinality'];
+      };
+      $field = field_create_field($field);
+      drupal_set_message($field['field_name'] . ' created for rListing');
+    };
+
+    if (empty($instance)) {
+      if (!empty($field_info['widget'])) {
+        $instance = array(
+          'field_name' => $field_info['name'],
+          'entity_type' => 'node',
+          'bundle' => $node_type,
+          'label' => $field_info['label'],
+          'required' => ($field_info['required'])? $field_info['required'] : FALSE,
+          'widget' => array(
+            'type' => $field_info['widget']['type'],
+          ),
+        );
+      }
+      else {
+        $instance = array(
+          'field_name' => $field_info['name'],
+          'entity_type' => 'node',
+          'bundle' => $node_type,
+          'label' => $field_info['label'],
+          'required' => ($field_info['required'])? $field_info['required'] : FALSE,
+          'widget' => array(
+            'type' => $field_info['type'],
+          ),
+        );
+      };
+
+      field_create_instance($instance);
+    };
+  };
+
+};
